@@ -1,0 +1,28 @@
+services:
+  app1:
+    build: ./app1
+    volumes:
+      # Flask ищет общий шаблон в каталоге templates рядом с модулем.
+      - ./storage:/app/templates:ro
+    healthcheck: &app-health
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/', timeout=2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  app2:
+    build: ./app2
+    volumes:
+      - ./storage:/app/templates:ro
+    healthcheck: *app-health
+
+  nginx:
+    build: ./nginx
+    ports:
+      # HTTPS доступен на стандартном порту локального компьютера.
+      - "127.0.0.1:443:443"
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
